@@ -80,41 +80,6 @@ var fileData = {
 }
 
 
-class Particle {
-  constructor(opts) {
-    opts = opts || {};
-    
-    this.pos = opts.pos || createVector(0, 0);
-    this.vel = opts.vel || createVector(0, 0);
-    this.acc = opts.acc || createVector(0, 0);
-    
-    this.maxSpeed = opts.maxSpeed || 3;
-    this.gravity = opts.gravity != undefined ? opts.gravity : true;
-    this.c = opts.c || color(255);
-    
-    this.death = opts.death || Infinity;
-    this.maxDeath = this.death;
-  }
-  update(dt, force) {
-    if(this.gravity) this.acc.y += .1;
-    
-    //this.acc.add(force);
-    this.vel.add(this.acc);
-    this.vel.limit(this.maxSpeed);
-    this.pos.add(this.vel);
-    this.acc.mult(0);
-    this.death -= dt;
-  }
-  show() {
-    if(this.death != Infinity) {
-      stroke(255, 255, 255, 50);
-    }
-      stroke(this.c);
-    wigglyPoint(this.pos.x, this.pos.y);
-  }
-  
-}
-
 class Box {
   constructor(opts) {
     opts = opts || {};
@@ -144,7 +109,6 @@ class Box {
   
 }
 
-
 class Player {
   constructor() {
     this.pos = createVector(100, 150);
@@ -158,9 +122,10 @@ class Player {
     this.indestructible = true;
     this.inTimer = 3;
       
-      this.score = 0;
-      this.maxScore = 0;
+    this.score = 0;
+    this.maxScore = 0;
     this.hasHighscore = false;
+    
     this.i = 0;
   }
   draw() {
@@ -179,8 +144,9 @@ class Player {
         if(this.solidCollide(blocks)) {
           if(!this.onGround) {
             for(let i = 0; i < 2; i++) {
-              particles.push(new Particle({pos: createVector(this.pos.x + (random() < 0.5 ? this.size.x : 0), this.pos.y + this.size.y),
-                                          acc: createVector(random() < 0.5 ? -10 : 10, random(-10, 0)), death: 0.3, c: this.getColor(this.i)}));
+              particles.push(new Particle({pos: createVector(this.pos.x + (random() < 0.5 ? this.size.x : 0), 
+                                                             this.pos.y + (move > 0 ? this.size.y : 0)),
+                                          acc: createVector(random() < 0.5 ? -10 : 10, random(-10, 0)), death: 0.3, c: this.color || this.getColor(this.i)}));
             }
           }
           this.velocity /= 2;
@@ -273,6 +239,9 @@ class Player {
         }
     }
   }
+  setColor(i) {
+    this.color = this.getColor(i);
+  }
   getColor(i) {
     return [color('#ffcc00'), color('#7fff00'), color('#ff00cc'), color('#535eeb')][i];
   }
@@ -326,7 +295,6 @@ function preload() {
   }
   
   for (let d of fileData.gifs) {
-    //console.log(d);
     let pos = d.pos;
     
     let frames = [];
@@ -375,83 +343,26 @@ function updateStars(xMove, minX) {
   strokeWeight(1.5);
 }
 
-
-
-
-
-function windowResized() {
-  resizeCanvas(windowWidth - 10, max(windowHeight - 10, 600))
-  setupGame(); 
-}
-
-var swipes = [false, false, false];
-var xDown = null;                                                        
-var yDown = null;
-
-function getTouches(evt) {
-  return evt.touches ||             // browser API
-         evt.originalEvent.touches; // jQuery
-}                                                     
-
-function handleTouchStart(evt) {
-    const firstTouch = getTouches(evt)[0];                                      
-    xDown = firstTouch.clientX;                                      
-    yDown = firstTouch.clientY;                                      
-};                                                
-
-function handleTouchMove(evt) {
-    if (!xDown || !yDown) {
-        return;
-    }
-
-    var xUp = evt.touches[0].clientX;                                    
-    var yUp = evt.touches[0].clientY;
-
-    var xDiff = xDown - xUp;
-    var yDiff = yDown - yUp;
-    swipes[0] = false;
-    swipes[1] = false;
-    swipes[2] = false;
-    if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
-        if ( xDiff > 0 ) {
-            /* left swipe */ 
-          swipes[1] = true;
-        } else {
-            /* right swipe */
-          swipes[2] = true;
-        }                       
-    } else {
-        if ( yDiff > 0 ) {
-          swipes[0] = true;
-          
-        } else { 
-            /* down swipe */
-        }                                                                 
-    }
-    /* reset values */
-    xDown = null;
-    yDown = null;                                             
-};
+/*
+*
+*   SETUP
+*
+*/
 
 function setup() {
-  createCanvas(windowWidth - 10, max(windowHeight - 10, 600));
-  //processSpriteSheet();
+  createCanvas(windowWidth - 10, max(windowHeight - 10, 300));
   setupGame();
-  noFill();
   
-  textSize(40);
   textStyle('bold');
   textAlign('right');
   textFont("Londrina Outline")
   
-  stroke(256);
-  strokeWeight(2);
-  
-  document.addEventListener('touchstart', handleTouchStart, false);        
-  document.addEventListener('touchmove', handleTouchMove, false);
-  //setupAnimation();
-  
   totalTime = 0;
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth - 10, max(windowHeight - 10, 300))
+  setupGame(); 
 }
 
 function setupGame() {
@@ -476,14 +387,16 @@ function setupGame() {
     killerBoxes.push(new Box({x: lastKillerBox, solid: false, y: noise(lastKillerBox + 20) * 300 + ground - 300, sizeX: random(10, 20), sizeY: random(10, 20)}));
     lastKillerBox += random(100, 300);
   }
+  
   sprites.title.x = width * 0.5 - sprites.title.sclX / 2;
   sprites.high.x = width * 0.5 - sprites.high.sclX / 2;
+  sprites.high.y = height * 0.5 - sprites.high.sclY / 2;
   sprites.high.index = 40;
   
-  sprites.planet.x = random(4000, 7000);
+  sprites.planet.x = random(4000, 10000);
   sprites.planet.y = random(0, ground / 2);
   
-  sprites.earth.x = random(8000, 10000);
+  sprites.earth.x = random(13000, 20000);
   sprites.earth.y = random(0, ground / 2);
   
   sprites.ufo.x = random(10000, 14000);
@@ -497,6 +410,14 @@ function setupGame() {
   moveSprites = [sprites.planet, sprites.earth, sprites.ufo, sprites.rocket]
 }
 
+
+/*
+*
+*
+*   DRAW LOOP
+*
+*/
+
 function draw() {
   totalTime += deltaTime / 1000;
   
@@ -506,6 +427,8 @@ function draw() {
     wigglyLine(0, height - 2, width, height - 2);
     wigglyLine(2, 0, 2, height);
   }
+  
+  // update animated sprites
   sprites.title.animate(deltaTime);
   sprites.high.animate(deltaTime);
   sprites.planet.animate(deltaTime);
@@ -513,40 +436,53 @@ function draw() {
   sprites.ufo.animate(deltaTime);
   sprites.rocket.animate(deltaTime);
   
-  sprites.ufo.y += sin(totalTime * 4) * 0.5
+  sprites.ufo.y += sin(totalTime * 4) * 0.5;
+  sprites.rocket.y += sin(totalTime * 7) * 0.2;
   
+  // show title + highscore (logic update in class)
   sprites.title.show();
   sprites.high.show();
   
+  // show help + credits
   if(seeInfoTime > 0) {
     let control = imgs.controls;
     image(imgs.controls, width / 2 - 200, 130, 400, 120);
-    
+    image(imgs.credits, width - 300, height - 100, 300, 100)
     seeInfoTime -= deltaTime / 1000;
   }
-  var gamepads = navigator.getGamepads();
+  
+  
+  // draw scores + update current highscore
   let firstPlayer = 0;
   let maxCurrentScore = 0;
+  noStroke();
+  
   for(let i = 0; i < player.length; i++) {
-    let currentPlayer = player[i];    
-    //currentPlayer.setStroke(i);
-    noStroke();
+    let currentPlayer = player[i];
+    if(currentPlayer.color == undefined) currentPlayer.color = currentPlayer.getColor(i);
+    
     currentPlayer.setFill(i);
     textSize(50);
     
     text(round(currentPlayer.score), width - 70, 70 + i * 80);
     textSize(30);
     text(round(currentPlayer.maxScore), width - 20, 70 + i * 80);
+    
     firstPlayer = max(firstPlayer, currentPlayer.pos.x);
     maxCurrentScore = max(maxCurrentScore, currentPlayer.score);
   }
-  highscore = max(highscore, maxCurrentScore);
-  //maxCurrentScore = sqrt(maxCurrentScore);
-  //firstPlayer -= camX;
-  //firstPlayer /= width;
   
+  
+  // update highscore
+  highscore = max(highscore, maxCurrentScore);
+  
+  // move camera
   translate(-camX, 0);
   
+  let camMove = camSpeed * deltaTime/1000 * (1 + min(sqrt(maxCurrentScore) / 30, 0.8));
+  camX += camMove;
+  
+  // move animated sprites (planets, ufo, rocket)
   for(let moving of moveSprites) {
     if(moving.x < camX + width) moving.show();
 
@@ -564,6 +500,7 @@ function draw() {
     }
   }
   
+  // show + update particles
   strokeWeight(3.5);
   for(let i = particles.length - 1; i >= 0; i--) {
     let p = particles[i];
@@ -573,58 +510,70 @@ function draw() {
       particles.splice(i, 1);
     }
   }
-  let camMove = camSpeed * deltaTime/1000 * (1 + min(sqrt(maxCurrentScore) / 30, 0.8));
-  camX += camMove;
   
-  strokeWeight(2);
-  //if(firstPlayer > 0.8) {}
-  noFill();
+  // show + update stars
   stroke(256);
   updateStars(camMove, camX);
   
+  // get connected gamepads
+  var gamepads = navigator.getGamepads();
+  
+  // for every player
   for(let i = 0; i < player.length; i++) {
     let currentPlayer = player[i];   
     currentPlayer.setStroke(i);
     currentPlayer.i = i;
+    
+    // check for 
     if(highscore == currentPlayer.score) {
       if(highscore > 10 && !currentPlayer.hasHighscore) {
         sprites.high.restart();
         for(let j = 0; j < 5; j++) {
           let d = 200;
-          firework(30, width * 0.5 + camX + random(-d, d), height * 0.5 + random(-d, d), 10, currentPlayer.getColor(i))
+          firework(30, width * 0.5 + camX + random(-d, d), height * 0.5 + random(-d, d), 10, currentPlayer.color || currentPlayer.getColor(i))
         }
       }
       currentPlayer.hasHighscore = true;
     }
     
+    // draw + update player
     currentPlayer.draw();
     currentPlayer.update(deltaTime, gravity, ground, boxes);
+    
+    // automove if indestructible
     if(currentPlayer.indestructible) {
       currentPlayer.pos.x += camMove
       if(currentPlayer.solidCollide(boxes)) {
         currentPlayer.pos.x -= camMove;
       }
     }
-    
+    // add score
+    // + 0-20 % based on x position
+    // + 50 % if not current highscore holder
+    // + 30 % if first player (on x axis)
     currentPlayer.score += deltaTime / 1000 * (1 + (currentPlayer.pos.x - camX) / width * 0.2) * (currentPlayer.score == maxCurrentScore ? 1 : 1.5) * (firstPlayer == currentPlayer.pos.x ? 1.3 : 1);
     
     currentPlayer.maxScore = max(currentPlayer.maxScore, currentPlayer.score)
     
+    // move player with gamepad or keys
     stroke(256);
     if (gamepads[i] != undefined) {
       currentPlayer.move(deltaTime, gamepads[i].buttons[0].pressed, -gamepads[i].axes[0], gamepads[i].axes[0], boxes);
-    } 
-    else if(i == 0) {
-      currentPlayer.move(deltaTime, keys[87] || swipes[0], keys[65] || swipes[1] ? 1 : 0, keys[68] || swipes[2] ? 1 : 0, boxes);
-    } else if(i == 1) {
+    }
+    else if(i == 0) { // w, a, d
+      currentPlayer.move(deltaTime, keys[87], keys[65] ? 1 : 0, keys[68] ? 1 : 0, boxes);
+    } else if(i == 1) { // <-, ->, ^
       currentPlayer.move(deltaTime, keys[38], keys[37] ? 1 : 0, keys[39] ? 1 : 0, boxes);
-    }else if(i == 2) {
+    }else if(i == 2) { // i, j, l
       currentPlayer.move(deltaTime, keys[73], keys[74] ? 1 : 0, keys[76] ? 1 : 0, boxes);
     }
+    
+    // check for death
     currentPlayer.collisionDie(killerBoxes, camX);
   }  
+  
+  // draw and reuse boxes + killer boxes
   for(var i = 0; i < boxes.length; i++) {
-    
     boxes[i].draw();
     if(boxes[i].reuse(camX, lastBox)) {
         boxes[i].pos.y = noise(lastBox) * 150 + ground - 100
@@ -632,17 +581,15 @@ function draw() {
     }
   }  
   for(var i = 0; i < killerBoxes.length; i++) {
-    //stroke(256, 0, 0, 50);
-    //strokeWeight(7);
-    //killerBoxes[i].draw();
     stroke(256, 0, 0);
-    //strokeWeight(1);
     killerBoxes[i].draw();
     if(killerBoxes[i].reuse(camX, lastKillerBox)) {
         lastKillerBox += random(100, 300);
     }
   }  
 }
+
+// collision logic
 
 function rectInRect(pos1, size1, pos2, size2) {
   return (pointInRect(pos1.x, pos1.y, pos2, size2) ||
@@ -662,6 +609,9 @@ function pointInRect(x, y, rectPos, rectSize) {
           y <= rectPos.y + rectSize.y);
 }
 
+// artsy display shit
+
+// wiggly fun
 function wigglyPoint(x, y, w) {
   let wiggle = w || 3;
   let ns = 10;
@@ -683,8 +633,6 @@ function wigglyLine(x, y, px, py, w) {
     let dpy = noise(px * ns + fc, py + 10) - 0.5;
     line(x + dx * wiggle, y + dy *wiggle, px + dpx * wiggle, py + dpy * wiggle);
 }
-
-
 function wigglyRect(x, y, sx, sy, w) {
     wigglyLine(x, y, x + sx, y);
     wigglyLine(x, y, x, y + sy);
@@ -692,6 +640,7 @@ function wigglyRect(x, y, sx, sy, w) {
     wigglyLine(x, y + sy, x + sx, y + sy);
 }
 
+// stripes fun
 function drawStripesRect(pos, size, spacing) {
   let maxX = floor(size.x / spacing);
   let maxY = floor(size.y / spacing);
@@ -722,20 +671,54 @@ function drawStripesRect(pos, size, spacing) {
   }
 }
 
+// firework particle fun
 function firework(num, x, y, delta, c) {
   for(let j = 0; j < num; j++) {
     particles.push(new Particle({pos: createVector(x + random(-delta, delta), y + random(-delta, delta)), vel: createVector(random(-1, 1), random(-1, 1)), acc: createVector(random(-5, 5), random(-5, 2)), c: c}))
   }
 }
 
+class Particle {
+  constructor(opts) {
+    opts = opts || {};
+    
+    this.pos = opts.pos || createVector(0, 0);
+    this.vel = opts.vel || createVector(0, 0);
+    this.acc = opts.acc || createVector(0, 0);
+    
+    this.maxSpeed = opts.maxSpeed || 3;
+    this.gravity = opts.gravity != undefined ? opts.gravity : true;
+    this.c = opts.c || color(255);
+    
+    this.death = opts.death || Infinity;
+    this.maxDeath = this.death;
+  }
+  update(dt, force) {
+    if(this.gravity) this.acc.y += .1;
+    
+    //this.acc.add(force);
+    this.vel.add(this.acc);
+    this.vel.limit(this.maxSpeed);
+    this.pos.add(this.vel);
+    this.acc.mult(0);
+    this.death -= dt;
+  }
+  show() {
+    stroke(this.c);
+    wigglyPoint(this.pos.x, this.pos.y);
+  }
+  
+}
+
+
+// key stuff
 function keyPressed() {
   keys[keyCode] = true;
-  console.log(keyCode);
   if(keyCode == 79 && player.length < 4) {
     player.push(new Player());
   } else if(keyCode == 80 && player.length > 1) {
     player.pop();
-  } else if(keyCode == 191 || keyCode == 73) { // ?
+  } else if(keyCode == 191) { // ?/i
     seeInfoTime = 10;
   }
 }
