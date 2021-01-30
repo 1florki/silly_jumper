@@ -205,6 +205,23 @@ class Player {
   }
   collisionDie(blocks, minX) {
     if (!this.indestructible && (this.checkBlocks(this.collision(blocks), {solid: false}) || this.pos.x < minX || this.pos.y + this.size.y > height)) {
+      
+      for(let i = 0; i < 70; i++) {
+        let x, y, ax, ay;
+        if(random() < 0.5) {
+          x = this.pos.x + random(this.size.x);
+          y = this.pos.y + (random() < 0.5 ? this.size.y : 0);
+        } else {
+          x = this.pos.x + (random() < 0.5 ? this.size.x : 0);
+          y = this.pos.y + random(this.size.y);
+        }
+        particles.push(new Particle({pos: createVector(x, y),
+                                     acc: createVector((x - (this.pos.x + this.size.x / 2)) / this.size.x + random(-0.1, 0.1), (y - (this.pos.y + this.size.y / 2)) / this.size.y + random(-0.1, 0.1)), //random(-1, 1), random(-1, 1)), 
+                                     death: 0.1 + random(0.4), 
+                                     c: this.color || this.getColor(this.i),
+                                     gravity: false}));
+      }
+      
       this.pos.x = minX + 100;
       this.indestructible = true;
       this.inTimer = 3;
